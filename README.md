@@ -4,16 +4,13 @@
 
 An attempt at creating a compute framework on top of WebGL. Based on some [Stack.gl](stack.gl) modules. There are projects alike, but either they require indepth knowledge of OpenGL to base projects of, they are too inflexible or they are too tied with a specific usage ([webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html)).
 
-<<<<<<< HEAD
-
-
 ## Stage Setup Options
 
 Stages must be fed to gl-compute in the order of computations, a render stage (if any) provided lastly
 The computation cycle will pass the results of one stage to the next according to it's name (see bellow)
 The last computation stage will pass it's results back to the first stage automatically
 Because of this in the first cycle (loop) the last stage data will be empty
-=======
+
 ****
 
 ### Stage Setup Options
@@ -22,7 +19,6 @@ Stages must be fed to gl-compute in the order of computations, a render stage (i
 The computation cycle will pass the results of one stage to the next according to it's name (see bellow).
 The last computation stage will pass it's results back to the first stage automatically.
 Because of this in the first cycle (loop) the last stage data will be empty.
->>>>>>> master
 
 ```
 var outputBuffer = { data: new Float32Array( compute.width * compute.height * 4 ), callback: function(){ console.log(this.data) } }
@@ -58,8 +54,6 @@ Inititalise Stages - Provide options as an object, stages will be named here
 compute.stagePreInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2, nameOfStage3: stageOptions3, renderStage: stageRender } )
 ```
 
-<<<<<<< HEAD
-Disclaimer: this is an hobbyist approach, don't let my code bad practices deceive you.
-=======
+****
 Disclaimer: this is an hobbyist approach, don't let my code bad practices deceive you. Not used to this package and modules managers from the point of the developer. I used npm to install and browserify to build modules into standalone versions. I am also keeping a custom modules.js which once parsed by browserify spits a file exposing all dependencies the project requires into a single file. Comments in code is me YELLING at myself not you. ;)
->>>>>>> master
+
