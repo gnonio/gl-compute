@@ -108,7 +108,6 @@ function setupData() {
 	var inputA = new Float32Array( inputWidth * inputHeight * inputElementSize )
 	var c = 0.1//(1 / (compute.width*compute.height));
 	for ( var i = 0; i < inputWidth * inputHeight * inputElementSize; i++ ) {
-		//inputA[i] = c
 		inputA[i*4 + 0] = c
 		inputA[i*4 + 1] = c//-1.0//(i % 4 == 3) ? 0.5 : 0.0
 		inputA[i*4 + 2] = c//-1.0
@@ -189,7 +188,7 @@ function setupShaders( data ) {
 	
 */
 
-	var callbackA = function(){ console.log(this.data) }
+	var callbackA = function() { console.log( this.data ) }
 	bufferA = { data: new Float32Array( compute.width * compute.height * 4 ), callback: callbackA }
 	var optionsA = {
 		type			: 'COMPUTE',
@@ -205,7 +204,7 @@ function setupShaders( data ) {
 		outputBuffer	: bufferA
 	}
 	
-	var callbackB = function(){ console.log(this.data) }
+	var callbackB = function() { console.log( this.data ) }
 	bufferB = { data: new Float32Array( compute.width * compute.height * 4 ), callback: callbackB }
 	var optionsB = {
 		type			: 'COMPUTE',
@@ -219,7 +218,7 @@ function setupShaders( data ) {
 		outputBuffer	: bufferB
 	}
 	
-	
+	var callbackR = function() { console.log( this.data ) }
 	bufferR = { data: new Uint8Array( compute.width * compute.height * 4), callback: callbackR }
 	var optionsR = {
 		type			: 'RENDER',
@@ -229,13 +228,9 @@ function setupShaders( data ) {
 				dataD		: { type: 'sampler2D', data: data.dataD, shape: [compute.width, compute.height, 1], flip: false }
 		},
 		shaderSources	: { vertex: shaderSources['vertRender'], fragment: shaderSources['fragRender'] },
-		readOutput		: true,
+		readOutput		: false,
 		outputBuffer	: bufferR
 	}
 
 	compute.stagePreInit( { StageA: optionsA, StageB: optionsB, Render: optionsR } )
 }
-
-function callbackR() { console.log( window.bufferR.data ) }
-
-
