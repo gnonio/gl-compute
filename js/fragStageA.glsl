@@ -23,13 +23,13 @@ void main() {
 	float c1 = float( pos ) * 0.05;
 	
 	vec4 result1 = texture2D( dataA, vec2(uv.x, uv.y) );
-	vec4 result2 = texture2D( StageB, vec2(uv.x, uv.y) );
-	vec4 result3 = vec4( float( computeLoop ) / 10.0, 0.0, 0.0, 1.0 );
+	vec4 result2 = texture2D( dataC, vec2(uv.x, uv.y) );
+	vec4 result3 = texture2D( StageB, vec2(uv.x, uv.y) );
 	vec4 last;
 	if ( computeLoop == 0 ) {
 		last = result1;
 	} else {
-		last = result2;
+		last = result3;
 	}
 	//gl_FragColor = vec4( float( computeLoop ), 0.0, 0.0, 1.0 );
 	//gl_FragColor = texture2D( result, vec2(uv.x, uv.y) );

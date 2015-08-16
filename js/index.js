@@ -71,7 +71,7 @@ function resourcesLoaded() {
 	
 	t05 = performance.now()
 	var stageBuffers = compute.processStages()
-	if ( stageBuffers.length > 0 ) console.log( stageBuffers )
+	//if ( stageBuffers.length > 0 ) console.log( stageBuffers )
 	t05f = performance.now() - t05
 	
 	t06 = performance.now()
@@ -144,6 +144,8 @@ function setupData() {
 	
 	return {dataA: inputA, dataB: inputB, dataC: inputC, dataD: inputD }
 }
+
+var TargetObjectA, TargetObjectB, TargetObjectR
 var bufferA, bufferB, bufferR
 function setupShaders( data ) {
 /*
@@ -188,38 +190,43 @@ function setupShaders( data ) {
 	
 */
 
-	var callbackA = function() { console.log( this.data ) }
-	bufferA = { data: new Float32Array( compute.width * compute.height * 4 ), callback: callbackA }
+	var callbackA = function() { console.log( this.outputBuffer ) }
+	bufferA = new Float32Array( compute.width * compute.height * 4 )
+	
+	TargetObjectA = { data: new Float32Array( compute.width * compute.height * 4 ) }
 	var optionsA = {
 		type			: 'COMPUTE',
 		stageShape		: [compute.width, compute.height],
+		draw			: true,
 		shaderSources	: { vertex: shaderSources['vertStageA'], fragment: shaderSources['fragStageA'] },
 		uniforms		: {						
 				dataA		: { type: 'sampler2D', data: data.dataA, shape: [compute.width, compute.height, 4] },
 				dataC		: { type: 'sampler2D', data: data.dataC, shape: [compute.width, compute.height, 1] },
 				dataD		: { type: 'sampler2D', data: data.dataD, shape: [compute.width, compute.height, 1], flip: true }
 		},
-		draw			: true,
+		output			: { read: true, parentObject: TargetObjectA, dataLocation: data, onUpdate: callbackA },
 		readOutput		: true,
-		outputBuffer	: bufferA
+		outputBuffer	: bufferA,
+		outputCallback	: callbackA
 	}
 	
-	var callbackB = function() { console.log( this.data ) }
-	bufferB = { data: new Float32Array( compute.width * compute.height * 4 ), callback: callbackB }
+	var callbackB = function() { console.log( this.outputBuffer ) }
+	bufferB = new Float32Array( compute.width * compute.height * 4 )
 	var optionsB = {
 		type			: 'COMPUTE',
 		stageShape		: [compute.width, compute.height],
+		draw			: true,
 		uniforms		: {
 				dataB		: { type: 'sampler2D', data: data.dataB, shape: [compute.width, compute.height, 1] },
 		},
 		shaderSources	: { vertex: shaderSources['vertStageB'], fragment: shaderSources['fragStageB'] },
-		draw			: true,
 		readOutput		: false,
-		outputBuffer	: bufferB
+		outputBuffer	: bufferB,
+		outputCallback	: callbackB
 	}
 	
-	var callbackR = function() { console.log( this.data ) }
-	bufferR = { data: new Uint8Array( compute.width * compute.height * 4), callback: callbackR }
+	var callbackR = function() { console.log( this.outputBuffer ) }
+	bufferR = new Uint8Array( compute.width * compute.height * 4)
 	var optionsR = {
 		type			: 'RENDER',
 		stageShape		: [compute.width, compute.height],
@@ -229,7 +236,8 @@ function setupShaders( data ) {
 		},
 		shaderSources	: { vertex: shaderSources['vertRender'], fragment: shaderSources['fragRender'] },
 		readOutput		: false,
-		outputBuffer	: bufferR
+		outputBuffer	: bufferR,
+		outputCallback	: callbackR
 	}
 
 	compute.stagePreInit( { StageA: optionsA, StageB: optionsB, Render: optionsR } )
