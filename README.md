@@ -6,7 +6,31 @@ An attempt at creating a compute framework on top of WebGL. Based on some [Stack
 
 ****
 
-### Stage Setup Options
+### Install
+
+1. clone the project
+2. manualy install required modules:
+`npm install <module> (check dependencies in package.json)`
+3. run browserify (it will warn if you missed any module above):
+`browserify js\modules.js -o js\node_modules.js`
+
+****
+
+### TODO
+
+- Fix stuff
+- Tighten up the linking of input data being processed with the origin of data. Likewise with the outputs.
+- Robustify and do more checks on user provided data
+- Fix this install procedure, fix npm packaging
+- Fix the resources (shaders) loading phase, maybe even adopt glslify (I don't like much to have glsl mixed with javascript - loosing syntax highlighting)
+- Provide some canned shaders to do some data post processing (input data 1 component > output data 4 components > output reduction to 1 component), pehaps also some pre-processing
+- If maturing enough, link up to Stack.gl compute feature requests
+
+****
+
+### Usage
+
+#### Stage Setup Options
 
 Stages must be fed to gl-compute in the order of computations, a render stage (if any) provided lastly.
 The computation cycle will pass the results of one stage to the next according to it's name (see bellow).
@@ -48,5 +72,4 @@ compute.stagePreInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2
 ```
 
 ****
-Disclaimer: this is an hobbyist approach, don't let my code bad practices deceive you. Not used to this package and modules managers from the point of the developer. I used npm to install and browserify to build modules into standalone versions. I am also keeping a custom modules.js which once parsed by browserify spits a file exposing all dependencies the project requires into a single file. Comments in code is me YELLING at myself not you. ;)
-
+Disclaimer: Hobbyist approach. Not used to this package and modules managers from the point of the developer. I used npm to install modules. I am also keeping a custom file (modules.js) which once parsed by browserify spits a file exposing all dependencies the project requires into a single file (node_modules.js).
