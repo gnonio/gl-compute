@@ -96,6 +96,7 @@ function resourcesLoaded() {
 				"\nTOTAL\t\t\t\t", tfinal)
 }
 
+var inputs
 function setupData() {
 	var gl = compute.gl
 	
@@ -115,7 +116,7 @@ function setupData() {
 		c += 0.05
 	}
 	
-	var matrixA = nd.array(inputA, [inputWidth, inputHeight, inputElementSize])
+	//var matrixA = nd.array(inputA, [inputWidth, inputHeight, inputElementSize])
 	
 	var inputB = new Float32Array( inputWidth * inputHeight )
 	var c = 0//.001;
@@ -126,7 +127,7 @@ function setupData() {
 		}
 	}
 	
-	var matrixB = nd.array(inputB, [inputWidth, inputHeight])
+	//var matrixB = nd.array(inputB, [inputWidth, inputHeight])
 	
 	var inputC = new Float32Array( inputWidth * inputHeight * 1 )
 	var c = 0
@@ -142,7 +143,16 @@ function setupData() {
 		c -= 0.05
 	}
 	
-	return {dataA: inputA, dataB: inputB, dataC: inputC, dataD: inputD }
+	var emptyFloats = new Float32Array( inputWidth * inputHeight * inputElementSize )
+	var emptyFloatsExpanded = new Float32Array( inputWidth * inputHeight * inputElementSize * 4 )
+	var emptyUInts = new Uint8Array( inputWidth * inputHeight * inputElementSize )
+	inputs = {	dataA: inputA, dataAOut: emptyFloats,
+				dataB: inputB, dataBOut: emptyFloats,
+				dataC: inputC, dataCOut: emptyFloats,
+				dataD: inputD, dataDOut: emptyFloats,
+				dataROut: emptyUInts
+	}
+	return inputs
 }
 
 var TargetObjectA, TargetObjectB, TargetObjectR
@@ -153,13 +163,15 @@ function setupShaders( data ) {
 	
 	Stages must be fed to gl-compute in the order of computations, a render stage (if any) provided lastly
 	The computation cycle will pass the results of one stage to the next according to it's name (see bellow)
-	The last computation stage will pass it's results back to the first stage automatically
-	Because of this in the first cycle (loop) the last stage data will be empty
+	The last computation stage will pass it's results back to the first stage accordingly
+	(Logically, first stage data will be empty in the first pass, no data available from last stage)
 	
 	var outputBuffer = { data: new Float32Array( compute.width * compute.height * 4 ), callback: function(){ console.log(this.data) } }
 	var options = {
 		type			: Stage Type - 'COMPUTE' (for the actual computations) or
 									   'RENDER' (can be ommited, optional for visualization purposes only)
+
+		draw			: Draw Flag - to activate/deactivate this stage on demand
 		
 		stageShape		: Stage Shape - These are the dimensions of this stages' output
 						  Length = stageShape[0] * stageShape[1] * 4 (4 = number of components/colors per element)
@@ -169,20 +181,25 @@ function setupShaders( data ) {
 
 		uniforms		: Stage Inputs - Data input to be fed to gl-compute
 		
-			{ uniformName : { type: 'sampler2D', data: inputData, shape: shape, flip: boolean } }
+			{ uniformName : { type: 'sampler2D', object: object, location: string, shape: array, flip: boolean }
 			
 						  These will be made into texture uniforms and fragment shader source will be generated and added correspondingly
+						  
 						  Each named property here becomes the uniform name to be made available in the shader
-						  GLSL naming conventions apply here
+						  Both the sampler2D uniform and a ivec2 containing the shape (dimensions) of the input is generated
+						  						  
+						  GLSL naming conventions apply
+						  
 						  The code generation includes a header and comments for your reference (ie. Stage Name and generation/compilation loop)
 						  Use your browser's shader editor to check the complete GLSL code being compiled
 
-		draw			: Draw Flag - to activate/deactivate this stage on demand
-
-		readOutput		: Read Output Flag - Most performance impact only activate if stage's intermediate results are required
+		output			: Stage Output - definitions of the target object where data will be saved
 		
-		outputBuffer	: Reference to a destination for the data and definition of convenience callback whenever new data is ready
-						  Should be able to reuse an existing object (ie. the same object wich provided the original data?)
+			{ write: boolean, object: object, location: string, onUpdated: function }
+			
+						  Write Output Flag - This is where the most performance impact occurs, use sparingly when intermediate results are required
+		
+						  Object Reference / Porperty name where the data buffer lies / callback to a function when new data has been writen
 	}
 	
 	Inititalise Stages - Provide options as an object, stages will be named here	
@@ -190,54 +207,40 @@ function setupShaders( data ) {
 	
 */
 
-	var callbackA = function() { console.log( this.outputBuffer ) }
-	bufferA = new Float32Array( compute.width * compute.height * 4 )
-	
-	TargetObjectA = { data: new Float32Array( compute.width * compute.height * 4 ) }
+	var callback = function() { console.log( this.output.object[this.output.location] ) }
 	var optionsA = {
 		type			: 'COMPUTE',
-		stageShape		: [compute.width, compute.height],
 		draw			: true,
+		stageShape		: [compute.width, compute.height],
 		shaderSources	: { vertex: shaderSources['vertStageA'], fragment: shaderSources['fragStageA'] },
 		uniforms		: {						
-				dataA		: { type: 'sampler2D', data: data.dataA, shape: [compute.width, compute.height, 4] },
-				dataC		: { type: 'sampler2D', data: data.dataC, shape: [compute.width, compute.height, 1] },
-				dataD		: { type: 'sampler2D', data: data.dataD, shape: [compute.width, compute.height, 1], flip: true }
+				dataA		: { type: 'sampler2D', object: data, location: 'dataA', shape: [compute.width, compute.height, 4] },
+				dataC		: { type: 'sampler2D', object: data, location: 'dataC', shape: [compute.width, compute.height, 1] },
+				dataD		: { type: 'sampler2D', object: data, location: 'dataD', shape: [compute.width, compute.height, 1], flip: true }
 		},
-		output			: { read: true, parentObject: TargetObjectA, dataLocation: data, onUpdate: callbackA },
-		readOutput		: true,
-		outputBuffer	: bufferA,
-		outputCallback	: callbackA
+		output			: { write: true, object: data, location: 'dataAOut', onUpdated: callback }
 	}
 	
-	var callbackB = function() { console.log( this.outputBuffer ) }
-	bufferB = new Float32Array( compute.width * compute.height * 4 )
 	var optionsB = {
 		type			: 'COMPUTE',
-		stageShape		: [compute.width, compute.height],
 		draw			: true,
-		uniforms		: {
-				dataB		: { type: 'sampler2D', data: data.dataB, shape: [compute.width, compute.height, 1] },
-		},
+		stageShape		: [compute.width, compute.height],
 		shaderSources	: { vertex: shaderSources['vertStageB'], fragment: shaderSources['fragStageB'] },
-		readOutput		: false,
-		outputBuffer	: bufferB,
-		outputCallback	: callbackB
+		uniforms		: {
+				dataB		: { type: 'sampler2D', object: data, location: 'dataB', shape: [compute.width, compute.height, 1] },
+		},
+		output			: { write: true, object: data, location: 'dataBOut', onUpdated: callback }
 	}
 	
-	var callbackR = function() { console.log( this.outputBuffer ) }
-	bufferR = new Uint8Array( compute.width * compute.height * 4)
 	var optionsR = {
 		type			: 'RENDER',
 		stageShape		: [compute.width, compute.height],
-		uniforms		: {
-				dataC		: { type: 'sampler2D', data: data.dataC, shape: [compute.width, compute.height, 1], flip: false },
-				dataD		: { type: 'sampler2D', data: data.dataD, shape: [compute.width, compute.height, 1], flip: false }
-		},
 		shaderSources	: { vertex: shaderSources['vertRender'], fragment: shaderSources['fragRender'] },
-		readOutput		: false,
-		outputBuffer	: bufferR,
-		outputCallback	: callbackR
+		uniforms		: {
+				dataC		: { type: 'sampler2D', object: data, location: 'dataC', shape: [compute.width, compute.height, 1], flip: false },
+				dataD		: { type: 'sampler2D', object: data, location: 'dataD', shape: [compute.width, compute.height, 1], flip: false }
+		},
+		output			: { write: false, object: data, location: 'dataROut', onUpdated: callback }
 	}
 
 	compute.stagePreInit( { StageA: optionsA, StageB: optionsB, Render: optionsR } )

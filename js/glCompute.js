@@ -106,7 +106,7 @@ glCompute.prototype = {
 				
 				gl.drawArrays(gl.TRIANGLES, 0, 6)
 				
-				if ( computeStage.readOutput ) this.glReadStage( computeStage )
+				if ( computeStage.output.write ) this.glReadStage( computeStage )
 			}
 		}
 		//console.log( 'LOOP ' + this.computeLoop )
@@ -133,7 +133,7 @@ glCompute.prototype = {
 			
 			gl.drawArrays(gl.TRIANGLES, 0, 6)			
 
-			if ( renderStage.readOutput ) this.glReadStage( renderStage )
+			if ( renderStage.output.write ) this.glReadStage( renderStage )
 		}
 	},
 	
@@ -144,17 +144,18 @@ glCompute.prototype = {
 		// IF we are LOOPING we must check if last stage type was 'COMPUTE' since the FIRST Stage will bug out reading the 'RENDER' buffer
 		// Whenever we draw to the 'RENDER' buffer to read it WE MUST somehow keep the results of the previous 'COMPUTE' available for the FIRST Stage
 
+		// Postprocess Output - we may still need this here
+		
 		// Render Buffer DOES NOT support FLOAT values		
 		if ( stage.type == 'COMPUTE' ) {
-			gl.readPixels(0, 0, stage.shape[0], stage.shape[1], gl.RGBA, gl.FLOAT, stage.outputBuffer)
+			gl.readPixels( 0, 0, stage.shape[0], stage.shape[1], gl.RGBA, gl.FLOAT, stage.output.object[stage.output.location] )
 		} else { //stage.type == 'RENDER'
-			gl.readPixels(0, 0, stage.shape[0], stage.shape[1], gl.RGBA, gl.UNSIGNED_BYTE, stage.outputBuffer)
+			gl.readPixels( 0, 0, stage.shape[0], stage.shape[1], gl.RGBA, gl.UNSIGNED_BYTE, stage.output.object[stage.output.location] )
 		}
-
-		// Callback if set
-		if ( stage.outputCallback ) stage.outputCallback.apply( stage )
 		
-		// Postprocess Output - we should not need this
+		// Callback if set
+		if ( stage.output.onUpdated ) stage.output.onUpdated.apply( stage )
+		
 	},
 	
 	disposeStagesFBOs: function () {
@@ -170,8 +171,10 @@ glComputeStage = function( glCompute, name, stages, options ) {	//stage, name, t
 	this.glCompute = glCompute
 	this.gl = glCompute.gl; var gl = this.gl
 	this.name = name
+	
 	this.lastStageName = stages.lastStageName
 	this.totalStages = stages.total
+	
 	this.type = options.type
 	this.options = options
 	
@@ -192,7 +195,8 @@ glComputeStage = function( glCompute, name, stages, options ) {	//stage, name, t
 	this.draw = ( this.type == 'COMPUTE') ? options.draw : true // Always true for render if existing
 		
 	// Create Buffers and prepare callbacks
-	this.readOutput = options.readOutput
+	this.output = options.output
+	//this.readOutput = options.readOutput
 	this.setStageBuffers()
 	
 	// For now vertex buffer is the same for both COMPUTE and RENDER stages
@@ -201,11 +205,11 @@ glComputeStage = function( glCompute, name, stages, options ) {	//stage, name, t
 
 	// SETUP Stage Uniforms
 	
-	// TODO: allow to pass inputs by reference. Outputs too but that will require integrated post processing (lets create a shader for this conversion)
+	// TODO: allow to pass inputs by reference. Outputs likewise but that will require integrated post processing (lets create a shader for this conversion)
 	// A way to test this is by passing the object along with the keyname containing the data we are interested in
 	// there should be alot of code savings and increased efficiency
 	
-	// we should also manage a flag providing an early check if data is "dirty" or not (ie. has been changed) in both directions CPU > GPU < CPU
+	// we should also manage a flag providing an early check if data is "dirty" or not (ie. has been changed), in both directions CPU > GPU < CPU
 	
 	// CONFIG - stage.uniforms contain the configuration
 	this.uniforms = options.uniforms
@@ -255,26 +259,31 @@ glComputeStage.prototype = {
 		var gl = this.gl
 		var options = this.options
 		
+		var buffer = options.output.object[options.output.location]
 		if ( this.type == 'COMPUTE' ) {
 			this.fbo = stackGL.createFBO( gl, options.stageShape, {float: true, color: 1, depth: false} )
-			var length = this.shape[0] * this.shape[1] * this.shape[2]			
-			if ( Object.prototype.toString.call(options.outputBuffer) == '[object Float32Array]' && options.outputBuffer.length == length) {
-				this.outputBuffer = options.outputBuffer ? options.outputBuffer : new Float32Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = options.outputCallback
+			var length = this.shape[0] * this.shape[1] * this.shape[2]
+			if ( Object.prototype.toString.call(buffer) == '[object Float32Array]' && buffer.length == length) { // Expected
+				console.log('Buffer appears to be ok to use: ' + this.name )
+				/*this.outputBuffer = options.outputBuffer ? options.outputBuffer : new Float32Array( this.shape[0] * this.shape[1] * this.shape[2] )
+				this.outputCallback = options.outputCallback*/
 			} else {
-				console.log('Buffer type mismatch, if providing one it must match the fbo type (Float32Array) and size (width * height * 4): ' + this.name )
-				this.outputBuffer = new Float32Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = function() { console.log( this.outputBuffer ) }
+				console.log('Buffer type mismatch, if providing one it must match the fbo type (Float32Array) and size (' + length + '): ' +
+					this.name + ' is ' +  Object.prototype.toString.call(buffer) + ' / ' + buffer.length)
+				/*this.outputBuffer = new Float32Array( this.shape[0] * this.shape[1] * this.shape[2] )
+				this.outputCallback = function() { console.log( this.outputBuffer ) }*/
 			}
 		} else { //this.type == 'RENDER'
-			var length = this.shape[0] * this.shape[1] * this.shape[2]			
-			if ( Object.prototype.toString.call(options.outputBuffer) == '[object Uint8Array]' && options.outputBuffer.length == length) {
-				this.outputBuffer = options.outputBuffer ? options.outputBuffer : new Uint8Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = options.outputCallback
+			var length = this.shape[0] * this.shape[1] * this.shape[2]
+			if ( Object.prototype.toString.call(buffer) == '[object Uint8Array]' && buffer.length == length) { // Expected
+				console.log('Buffer appears to be ok to use: ' + this.name )
+				/*this.outputBuffer = options.outputBuffer ? options.outputBuffer : new Uint8Array( this.shape[0] * this.shape[1] * this.shape[2] )
+				this.outputCallback = options.outputCallback*/
 			} else {
-				console.log('Buffer type mismatch, if providing one it must match the fbo type (Uint8Array) and size (width * height * 4): ' + this.name )
-				this.outputBuffer = new Uint8Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = function() { console.log( this.outputBuffer ) }
+				console.log('Buffer type mismatch, if providing one it must match the render stage type (Uint8Array) and size (' + length + '): ' +
+					this.name + ' is ' +  Object.prototype.toString.call(buffer) + ' / ' + buffer.length)
+				/*this.outputBuffer = new Uint8Array( this.shape[0] * this.shape[1] * this.shape[2] )
+				this.outputCallback = function() { console.log( this.outputBuffer ) }*/
 			}
 		}
 	},
@@ -309,13 +318,13 @@ glComputeUniform = function( gl, stage, name, uniform ) {
 	this.fragmentSrc = ''	
 	switch( this.type ) {
 		case 'fbo':
-			// FBOS are created at Stage Creation
+			// FBOs are created earlier at Stage Creation
 			this.fragmentSrc = '// Previous Stages Results\n\n' +
 							   'uniform sampler2D ' + this.name + '; // FBO\n'+
 							   'uniform ivec2 ' + this.name + 'Shape; // Shape\n\n'
 			break;
 		case 'sampler2D':
-			this.createTexture( uniform.data, uniform.shape, uniform.flip )
+			this.createTexture( uniform.object, uniform.location, uniform.shape, uniform.flip )
 			this.fragmentSrc = 'uniform sampler2D ' + this.name + '; // Input Data\n'+
 							   'uniform ivec2 ' + this.name + 'Shape; // Dimensions\n\n'
 			break;
@@ -381,9 +390,10 @@ glComputeUniform.prototype = {
 		stage.shader.uniforms[ stageToBind.name+'Shape' ] = stageToBind.fbo._shape
 		
 	},
-	createTexture: function( data, shape, flip ) {
+	createTexture: function( object, location, shape, flip ) {
 		var gl = this.gl
-		this.data = data
+		this.data = object[location]
+		this.location = location
 		this.texture = gl.createTexture();
 		this.shape = shape
 		
@@ -404,7 +414,7 @@ glComputeUniform.prototype = {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 		
 		this.format = shape[2] > 1 ? gl.RGBA : gl.LUMINANCE
-		gl.texImage2D( gl.TEXTURE_2D, 0, this.format, shape[0], shape[1], 0, this.format, gl.FLOAT, data )
+		gl.texImage2D( gl.TEXTURE_2D, 0, this.format, shape[0], shape[1], 0, this.format, gl.FLOAT, this.data )
 	},
 	bindTexture: function( textureUnit ) {
 		var gl = this.gl

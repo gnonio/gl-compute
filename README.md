@@ -2,29 +2,27 @@
 
 ## WebGL Compute Framework
 
-An attempt at creating a compute framework on top of WebGL. Based on some [Stack.gl](stack.gl) modules. There are projects alike, but either they require indepth knowledge of OpenGL to base projects of, they are too inflexible or they are too tied with a specific usage ([webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html)).
+An attempt at creating a compute framework on top of WebGL. Based on some [#stack.gl](www.stack.gl) modules. There are projects alike, but either they require indepth knowledge of OpenGL to base projects of, they are too inflexible or they are too tied with a specific usage ([webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html)).
 
 ****
 
 ### Install
 
 1. clone the project
-2. manualy install required modules:
-`npm install <module> (check dependencies in package.json)`
-3. run browserify (it will warn if you missed any module above):
-`browserify js\modules.js -o js\node_modules.js`
+2. manualy install required modules: `npm install <module> (check dependencies in package.json)`
+3. run browserify (it will warn if you missed any module above): `browserify js\modules.js -o js\node_modules.js`
 
 ****
 
-### TODO
+### Todo
 
 - Fix stuff
 - Tighten up the linking of input data being processed with the origin of data. Likewise with the outputs.
 - Robustify and do more checks on user provided data
 - Fix this install procedure, fix npm packaging
-- Fix the resources (shaders) loading phase, maybe even adopt glslify (I don't like much to have glsl mixed with javascript - loosing syntax highlighting)
+- Fix the resources (shaders) loading phase (so ugly), maybe even adopt glslify (I don't like much to have glsl mixed with javascript - loosing syntax highlighting)
 - Provide some canned shaders to do some data post processing (input data 1 component > output data 4 components > output reduction to 1 component), pehaps also some pre-processing
-- If maturing enough, link up to Stack.gl compute feature requests
+- If maturing enough, link up to #stack.gl compute feature requests
 
 ****
 
