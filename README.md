@@ -4,13 +4,6 @@
 
 An attempt at creating a compute framework on top of WebGL. Based on some [Stack.gl](stack.gl) modules. There are projects alike, but either they require indepth knowledge of OpenGL to base projects of, they are too inflexible or they are too tied with a specific usage ([webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html)).
 
-## Stage Setup Options
-
-Stages must be fed to gl-compute in the order of computations, a render stage (if any) provided lastly
-The computation cycle will pass the results of one stage to the next according to it's name (see bellow)
-The last computation stage will pass it's results back to the first stage automatically
-Because of this in the first cycle (loop) the last stage data will be empty
-
 ****
 
 ### Stage Setup Options
