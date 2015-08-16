@@ -1,0 +1,28 @@
+{
+  "name": "gl-compute",
+  "version": "1.0.0",
+  "description": "WebGL Compute Framework",
+  "main": "js\\index.js",
+  "dependencies": {
+    "get-canvas-context": "^1.0.1",
+    "gl-buffer": "^2.1.2",
+    "gl-fbo": "^2.0.5",
+    "gl-shader": "^4.0.5",
+    "gl-shader-core": "^2.2.0",
+    "gl-texture2d": "^2.0.9",
+    "gl-vao": "^1.2.1",
+    "ndarray": "^1.0.18",
+    "webglew": "^1.0.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "GPGPU",
+    "WebGL",
+    "Compute"
+  ],
+  "author": "gnonio (gamma.stardust@gmail.com)",
+  "license": "MIT"
+}
