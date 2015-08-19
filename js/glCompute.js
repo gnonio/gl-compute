@@ -21,7 +21,7 @@ glCompute.prototype = {
 		return true;
 	},
 	
-	setupGL: function( width, height, factor ) {
+	setupGL: function( width, height, factor ) { // Factor just scales the canvas size
 		// Get Canvas Container
 		var container = document.getElementById( this.containerId )
 		this.container = container
@@ -61,30 +61,60 @@ glCompute.prototype = {
 		gl.canvas.style["image-rendering"] = "-moz-crisp-edges"
 	},
 	
-	stagePreInit: function( stages ) {
-		var gl = this.gl
+	preInit: function( stages ) {
+		//var gl = this.gl
 		
 		// Let's do some variable checking here then
 		// (provide a warning when stage output shape differs from the receiving stage shape? other checks?)
-		var lastStageName = ''; var totalStages = 0; var preflightOK = true
+		var lastStageName = ''; var totalStages = 0; var preInitOK = true
 		for( var stage in stages ) {
-			if ( stages.hasOwnProperty(stage) ) {
-				if ( stages[ stage ].type == 'COMPUTE' || stages[ stage ].type == 'RENDER' ) {
-					// We need the last stage name in order to set uniforms in first stage
-					if ( stages[ stage ].type == 'COMPUTE' ) { lastStageName = stage; totalStages++ }
+			if ( stages.hasOwnProperty( stage ) ) {
+				var options = stages[ stage ]
+
+				// Check Shape (dimensions) conformity
+				if ( options.shape.length > 2 ) {
+					preInitOK = false
+					console.log(stage + ': Only 4 of components per fragment supported (Framebuffer and Renderbuffer in gl.RGBA)')
 				} else {
-					preflightOK = false
-					console.log( 'Stage type not properly set: ' + stages[ stage ].type + ' is not a valid stage type ' + stage )
+					options.shape = [ options.shape[0], options.shape[1], 4 ]
+				}
+				
+				// Check Stage Type
+				if ( options.type == 'COMPUTE' || options.type == 'RENDER' ) {
+					// We need the last stage name in order to set uniforms in first stage
+					if ( options.type == 'COMPUTE' ) { lastStageName = stage; lastStageShape = options.shape; totalStages++ }
+				} else {
+					preInitOK = false
+					console.log( stage + ': Stage type not properly set: ' + options.type + ' is not a valid stage type ' )
+				}
+				
+				// Check Buffer output conformity
+				var buffer = options.output.object[ options.output.location ]
+				var length = options.shape[0] * options.shape[1] * options.shape[2]
+				if ( options.type == 'COMPUTE' ) {
+					if ( Object.prototype.toString.call( buffer ) != '[object Float32Array]' || buffer.length != length ) { // Expected
+						preInitOK = false
+						console.log( stage + ': Buffer type mismatch, it must match the fbo type (Float32Array) and size (' + length + '): ' +
+							Object.prototype.toString.call( buffer ) + ' / ' + buffer.length )
+					}
+				} else { //this.type == 'RENDER'
+					if ( Object.prototype.toString.call( buffer ) != '[object Uint8Array]' || buffer.length != length ) { // Expected
+						preInitOK = false
+						console.log( stage + ': Buffer type mismatch, it must match the render stage type (Uint8Array) and size (' + length + '): ' +
+							Object.prototype.toString.call( buffer ) + ' / ' + buffer.length )
+					}
 				}
 			}
 		}
-		if ( preflightOK ) {
-			for( var stage in stages ) {
-				if ( stages.hasOwnProperty(stage) ) {
-					var stage = new glComputeStage( this, stage, { lastStageName: lastStageName, total: totalStages }, stages[ stage ] )
+		if ( preInitOK ) {
+			for( var name in stages ) {
+				if ( stages.hasOwnProperty( name ) ) {
+					var stage = new glComputeStage( this, name, { lastStageName: lastStageName, lastStageShape: lastStageShape, total: totalStages }, stages[ name ] )
 				}
 			}
-		}		
+		} else {
+			console.log( 'Stage preInit failed' )
+		}
 	},
 	
 	// Process data
@@ -92,8 +122,8 @@ glCompute.prototype = {
 		var gl = this.gl
 		
 		for ( var i = 0; i < this.stages.length; i++ ) {
-			var computeStage = this.stages[i]
-			
+		
+			var computeStage = this.stages[i]			
 			if( computeStage.draw ) {				
 				computeStage.fbo.bind()				
 				gl.viewport( 0, 0, computeStage.shape[0], computeStage.shape[1] )
@@ -109,7 +139,6 @@ glCompute.prototype = {
 				if ( computeStage.output.write ) this.glReadStage( computeStage )
 			}
 		}
-		//console.log( 'LOOP ' + this.computeLoop )
 		this.computeLoop++
 	},
 	
@@ -138,20 +167,13 @@ glCompute.prototype = {
 	},
 	
 	glReadStage: function ( stage ) {
-		var gl = this.gl
-		
+		var gl = this.gl		
 		// Stage Framebuffer DOES support FLOAT values BUT ONLY in RGBA
-		// IF we are LOOPING we must check if last stage type was 'COMPUTE' since the FIRST Stage will bug out reading the 'RENDER' buffer
-		// Whenever we draw to the 'RENDER' buffer to read it WE MUST somehow keep the results of the previous 'COMPUTE' available for the FIRST Stage
 
 		// Postprocess Output - we may still need this here
-		
-		// Render Buffer DOES NOT support FLOAT values		
-		if ( stage.type == 'COMPUTE' ) {
-			gl.readPixels( 0, 0, stage.shape[0], stage.shape[1], gl.RGBA, gl.FLOAT, stage.output.object[stage.output.location] )
-		} else { //stage.type == 'RENDER'
-			gl.readPixels( 0, 0, stage.shape[0], stage.shape[1], gl.RGBA, gl.UNSIGNED_BYTE, stage.output.object[stage.output.location] )
-		}
+	
+		var format = ( stage.type == 'COMPUTE' ) ? gl.FLOAT : gl.UNSIGNED_BYTE // Render Buffer DOES NOT support FLOAT values directly
+		gl.readPixels( 0, 0, stage.shape[0], stage.shape[1], gl.RGBA, format, stage.output.object[stage.output.location] )
 		
 		// Callback if set
 		if ( stage.output.onUpdated ) stage.output.onUpdated.apply( stage )
@@ -167,87 +189,50 @@ glCompute.prototype = {
 	}
 }
 
-glComputeStage = function( glCompute, name, stages, options ) {	//stage, name, type, args
+glComputeStage = function( glCompute, name, stages, options ) {
 	this.glCompute = glCompute
 	this.gl = glCompute.gl; var gl = this.gl
 	this.name = name
 	
 	this.lastStageName = stages.lastStageName
+	this.lastStageShape = stages.lastStageShape
 	this.totalStages = stages.total
 	
 	this.type = options.type
-	this.options = options
+	this.options = options // Save user options
 	
 	this.stageNumber = glCompute.stages.length // This is a running count when glComputeStage is called
-	this.boundFBOs = 0
-	this.boundTextures = 0
 	
-	// Set Stage Shape
-	if ( options.stageShape.length > 2 ) {
-		//this.shape = [options.stageShape[0], options.stageShape[1], options.stageShape[2]]
-		console.log('Only 4 components per fragment currently supported')
-		this.shape = [ options.stageShape[0], options.stageShape[1], 4 ]
-	} else {
-		this.shape = [ options.stageShape[0], options.stageShape[1], 4 ]
-	}
-
+	this.boundFBOs = 0		// These are critical values
+	this.boundTextures = 0	// its referencing must be carefully managed
+	
+	// Set FBO for compute stages
+	if ( this.type == 'COMPUTE' ) this.fbo = stackGL.createFBO( gl, options.shape, {float: true, color: 1, depth: false} )
+	
 	// Set Draw flag
 	this.draw = ( this.type == 'COMPUTE') ? options.draw : true // Always true for render if existing
-		
-	// Create Buffers and prepare callbacks
-	this.output = options.output
-	//this.readOutput = options.readOutput
-	this.setStageBuffers()
+
+	// Set Stage Shape
+	this.shape = [ options.shape[0], options.shape[1], options.shape[2] ]
 	
-	// For now vertex buffer is the same for both COMPUTE and RENDER stages
+	// Set Output
+	this.output = options.output
+	
+	// Set Vertex buffer | currently the same for both COMPUTE and RENDER stages
 	this.vertexBuffer = stackGL.createBuffer( gl, [ -1, 1, 1, 1, -1, -1,
 													1, 1, 1, -1, -1, -1	], gl.STATICDRAW )
 
-	// SETUP Stage Uniforms
+	// Set Stage Uniforms
+	this.uniformsConfig = this.options.uniforms
+	this.uniforms = {}
+	this.setupUniforms()
 	
-	// TODO: allow to pass inputs by reference. Outputs likewise but that will require integrated post processing (lets create a shader for this conversion)
-	// A way to test this is by passing the object along with the keyname containing the data we are interested in
-	// there should be alot of code savings and increased efficiency
+	// TODO: allow to configure some post processing
+	// Reduce / Column-Row transposition / etc (lets keep these as shaders)
 	
-	// we should also manage a flag providing an early check if data is "dirty" or not (ie. has been changed), in both directions CPU > GPU < CPU
-	
-	// CONFIG - stage.uniforms contain the configuration
-	this.uniforms = options.uniforms
-	
-	this.uniforms.computeLoop = { type: 'int', data: this.glCompute } // this value is increased whenever a full stage cycle is over (excludes render)
-	this.uniforms.stageShape = { type: 'ivec3', data: this.shape }
-	
-	if ( this.type == 'COMPUTE' ) { // - lets add a uniform for the previous compute stage
-		var previousStage = ( this.stageNumber > 0 ) ? this.glCompute.stages[this.stageNumber - 1] : { name: this.lastStageName }
-		this.uniforms[previousStage.name] = { type: 'fbo', data: previousStage.shape }
-	} else { // this.type == 'RENDER' - lets add a uniform for each compute stage
-		for( var i = 0; i < this.glCompute.stages.length; i++ ) {
-			var computeStage = this.glCompute.stages[i]
-			this.uniforms[computeStage.name] = { type: 'fbo', data: computeStage.shape }
-		}
-	}
-	
-	// CREATION - stage.shader.uniforms contains the actual uniforms
-	var uniforms = this.uniforms
-	for( var key in uniforms ) {
-		if ( uniforms.hasOwnProperty(key) ) {
-			var uniform = uniforms[key]
-			this.uniforms[key] = new glComputeUniform( gl, this, key, uniform )
-		}
-	}	
-	
-	// Vertex Shader stays the same for now
-	this.vertexShader = options.shaderSources.vertex
-	// Fragment Shader consolidate uniforms code generated
-	this.fragmentSrc = '// STAGE - ' + this.name + ' | LOOP - ' + this.glCompute.computeLoop + ' \n// Generated User Defined Uniforms\n\n'	
-	for( var key in uniforms ) {
-		if ( uniforms.hasOwnProperty(key) ) {
-			var uniform = uniforms[key]
-			this.fragmentSrc = this.fragmentSrc + uniform.fragmentSrc
-		}
-	}	
-	this.fragmentShader = this.fragmentSrc + '// END Generated GLSL\n\n\n' + options.shaderSources.fragment
-	
+	// we should also manage a flag providing an early check if data is "dirty" or not (ie. has been changed),
+	// in both directions CPU > GPU < CPU
+		
 	// Create Shader
 	this.shader = stackGL.createShader( gl, this.vertexShader, this.fragmentShader )
 
@@ -255,41 +240,47 @@ glComputeStage = function( glCompute, name, stages, options ) {	//stage, name, t
 	if ( this.type == 'RENDER') glCompute.renderStage = this
 }
 glComputeStage.prototype = {
-	setStageBuffers: function() {
+	setupUniforms: function() {
 		var gl = this.gl
-		var options = this.options
 		
-		var buffer = options.output.object[options.output.location]
-		if ( this.type == 'COMPUTE' ) {
-			this.fbo = stackGL.createFBO( gl, options.stageShape, {float: true, color: 1, depth: false} )
-			var length = this.shape[0] * this.shape[1] * this.shape[2]
-			if ( Object.prototype.toString.call(buffer) == '[object Float32Array]' && buffer.length == length) { // Expected
-				console.log('Buffer appears to be ok to use: ' + this.name )
-				/*this.outputBuffer = options.outputBuffer ? options.outputBuffer : new Float32Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = options.outputCallback*/
-			} else {
-				console.log('Buffer type mismatch, if providing one it must match the fbo type (Float32Array) and size (' + length + '): ' +
-					this.name + ' is ' +  Object.prototype.toString.call(buffer) + ' / ' + buffer.length)
-				/*this.outputBuffer = new Float32Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = function() { console.log( this.outputBuffer ) }*/
-			}
-		} else { //this.type == 'RENDER'
-			var length = this.shape[0] * this.shape[1] * this.shape[2]
-			if ( Object.prototype.toString.call(buffer) == '[object Uint8Array]' && buffer.length == length) { // Expected
-				console.log('Buffer appears to be ok to use: ' + this.name )
-				/*this.outputBuffer = options.outputBuffer ? options.outputBuffer : new Uint8Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = options.outputCallback*/
-			} else {
-				console.log('Buffer type mismatch, if providing one it must match the render stage type (Uint8Array) and size (' + length + '): ' +
-					this.name + ' is ' +  Object.prototype.toString.call(buffer) + ' / ' + buffer.length)
-				/*this.outputBuffer = new Uint8Array( this.shape[0] * this.shape[1] * this.shape[2] )
-				this.outputCallback = function() { console.log( this.outputBuffer ) }*/
+		// CONFIG - stage.uniformsConfig contain the configuration
+		this.uniformsConfig.computeLoop = { type: 'int', data: this.glCompute } // this value is increased whenever a full stage cycle is over (excludes render)
+		this.uniformsConfig.shape = { type: 'ivec3', data: this.shape }
+		
+		if ( this.type == 'COMPUTE' ) { // - lets add a uniform for the previous compute stage
+			var previousStage = ( this.stageNumber > 0 ) ? this.glCompute.stages[this.stageNumber - 1] : { name: this.lastStageName, shape: this.lastStageShape }
+			this.uniformsConfig[previousStage.name] = { type: 'fbo', data: previousStage.shape }
+		} else { // this.type == 'RENDER' - lets add a uniform for each compute stage
+			for( var i = 0; i < this.glCompute.stages.length; i++ ) {
+				var computeStage = this.glCompute.stages[i]
+				this.uniformsConfig[computeStage.name] = { type: 'fbo', data: computeStage.shape }
 			}
 		}
+		
+		// CREATION - stage.shader.uniforms set by glComputeUniform() will contain the actual uniforms
+		var uniformsConfig = this.uniformsConfig
+		for( var key in uniformsConfig ) {
+			if ( uniformsConfig.hasOwnProperty(key) ) {
+				var uniform = uniformsConfig[key]
+				this.uniforms[key] = new glComputeUniform( gl, this, key, uniform )
+			}
+		}
+		
+		// Vertex Shader stays the same for now
+		this.vertexShader = this.options.shaderSources.vertex
+		// Fragment Shader consolidate uniforms code generated
+		this.fragmentSrc = '// STAGE - ' + this.name + ' | LOOP - ' + this.glCompute.computeLoop + ' \n// Generated User Defined Uniforms\n\n'
+		var uniforms = this.uniforms
+		for( var key in uniforms ) {
+			if ( uniforms.hasOwnProperty(key) ) {
+				var uniform = uniforms[key]
+				this.fragmentSrc = this.fragmentSrc + uniform.fragmentSrc
+			}
+		}	
+		this.fragmentShader = this.fragmentSrc + '// END Generated GLSL\n\n\n' + this.options.shaderSources.fragment
 	},
 	bindUniforms: function() {
-		var stage = this
-		var uniforms = stage.uniforms
+		var uniforms = this.uniforms
 		// RESET counts
 		// FBOs target textureUnit is always 0 for 'COMPUTE' Stages | for ' RENDER' Stage it is a count from 0 up to #Stages
 		// sample2Ds target textureUnit starts always in 1 for 'COMPUTE' Stages | for ' RENDER' Stage it starts always from #Stages up to #MAX
@@ -311,21 +302,19 @@ glComputeUniform = function( gl, stage, name, uniform ) {
 	this.stage = stage
 	this.name = name
 	this.type = uniform.type
-	
-	// WE SHOULD BE PASSING DATA AS OBJECTS (BY REFERENCE) ELSE WE ARE COPYING >>>> WE GET FREE UPDATES (ARE THEY REALLY FREE?)
 
 	// Setting up glsl source to add to shaders
 	this.fragmentSrc = ''	
 	switch( this.type ) {
-		case 'fbo':
-			// FBOs are created earlier at Stage Creation
-			this.fragmentSrc = '// Previous Stages Results\n\n' +
-							   'uniform sampler2D ' + this.name + '; // FBO\n'+
+		case 'fbo':	// FBOs are created earlier at Stage Creation
+			// Alternative naming: var name = stage.type == 'COMPUTE' ? 'previousStage' : this.name
+			this.fragmentSrc = '// Previous Stage(s) Results\n\n' +
+							   'uniform sampler2D ' + this.name + '; // FBO\n' +
 							   'uniform ivec2 ' + this.name + 'Shape; // Shape\n\n'
 			break;
 		case 'sampler2D':
 			this.createTexture( uniform.object, uniform.location, uniform.shape, uniform.flip )
-			this.fragmentSrc = 'uniform sampler2D ' + this.name + '; // Input Data\n'+
+			this.fragmentSrc = 'uniform sampler2D ' + this.name + '; // Input Data\n' +
 							   'uniform ivec2 ' + this.name + 'Shape; // Dimensions\n\n'
 			break;
 		case 'ivec2':
@@ -349,12 +338,10 @@ glComputeUniform.prototype = {
 		switch( this.type ) {
 			case 'fbo':
 				this.bindFBO( this.stage.boundFBOs )
-				//console.log( this.stage.name + ' glComputeUniform.bind() fbo ' + this.name, 'textureUnit', this.stage.count, ' | UNBUGGING ' + this.stage.boundFBOs )
 				this.stage.boundFBOs++
 				break;
 			case 'sampler2D':
 				this.bindTexture( this.stage.boundTextures )
-				//console.log( this.stage.name + ' glComputeUniform.bind() sampler2D ' + this.name, 'textureUnit', this.stage.count, ' | UNBUGGING ' + this.stage.boundTextures )
 				this.stage.boundTextures++
 				break;
 			case 'ivec2':

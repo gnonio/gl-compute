@@ -5,13 +5,14 @@ function init() {
 	var script = document.createElement('script');
 		document.querySelector('#buttonClick').addEventListener('click', function() {
 			var t05 = performance.now()
-			var stageBuffers = compute.processStages()
-			//if ( stageBuffers.length > 0 ) console.log( stageBuffers )
+			compute.processStages()
+			console.log( 'LOOP ' + compute.computeLoop )
 			t05f = performance.now() - t05
+			
 			t06 = performance.now()
-			var renderBuffer = compute.renderOutput()
-			//if ( renderBuffer.length > 0 ) console.log( renderBuffer )
+			compute.renderOutput()
 			t06f = performance.now() - t06
+			
 			console.log("processStages\t\t", t05f,
 						"\nrenderOutput\t\t", t06f)
 	}, false);
@@ -58,7 +59,7 @@ function resourcesLoaded() {
 	t01f = performance.now() - t01
 	
 	t02 = performance.now()
-	compute.setupGL( 4, 3, 100 )
+	compute.setupGL( 7, 5, 100 )
 	t02f = performance.now() - t02
 	
 	t03 = performance.now()
@@ -70,13 +71,11 @@ function resourcesLoaded() {
 	t04f = performance.now() - t04
 	
 	t05 = performance.now()
-	var stageBuffers = compute.processStages()
-	//if ( stageBuffers.length > 0 ) console.log( stageBuffers )
+	compute.processStages()
 	t05f = performance.now() - t05
 	
 	t06 = performance.now()
-	var renderBuffer = compute.renderOutput()
-	//if ( renderBuffer.length > 0 ) console.log( renderBuffer )
+	compute.renderOutput()
 	t06f = performance.now() - t06
 	
 	t07 = performance.now()
@@ -107,13 +106,13 @@ function setupData() {
 	var inputHeight = compute.height
 	
 	var inputA = new Float32Array( inputWidth * inputHeight * inputElementSize )
-	var c = 0.1//(1 / (compute.width*compute.height));
+	var c = (1 / (inputWidth * inputHeight))
 	for ( var i = 0; i < inputWidth * inputHeight * inputElementSize; i++ ) {
 		inputA[i*4 + 0] = c
 		inputA[i*4 + 1] = c//-1.0//(i % 4 == 3) ? 0.5 : 0.0
 		inputA[i*4 + 2] = c//-1.0
 		inputA[i*4 + 3] = 1.0//-1.0
-		c += 0.05
+		c += (1 / (inputWidth * inputHeight))
 	}
 	
 	//var matrixA = nd.array(inputA, [inputWidth, inputHeight, inputElementSize])
@@ -140,7 +139,7 @@ function setupData() {
 	var c = 1
 	for ( var i = 0; i < inputWidth * inputHeight * 1; i++ ) {
 		inputD[i] = c
-		c -= 0.05
+		c -= (1 / (inputWidth * inputHeight))
 	}
 	
 	var emptyFloats = new Float32Array( inputWidth * inputHeight * inputElementSize )
@@ -173,7 +172,7 @@ function setupShaders( data ) {
 
 		draw			: Draw Flag - to activate/deactivate this stage on demand
 		
-		stageShape		: Stage Shape - These are the dimensions of this stages' output
+		shape			: Stage Shape - These are the dimensions of this stages' output
 						  Length = stageShape[0] * stageShape[1] * 4 (4 = number of components/colors per element)
 
 		shaderSources	: Shader Sources - to use in this stage
@@ -203,7 +202,7 @@ function setupShaders( data ) {
 	}
 	
 	Inititalise Stages - Provide options as an object, stages will be named here	
-	compute.stagePreInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2, nameOfStage3: stageOptions3, renderStage: stageRender } )
+	compute.preInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2, nameOfStage3: stageOptions3, renderStage: stageRender } )
 	
 */
 
@@ -211,7 +210,7 @@ function setupShaders( data ) {
 	var optionsA = {
 		type			: 'COMPUTE',
 		draw			: true,
-		stageShape		: [compute.width, compute.height],
+		shape			: [compute.width, compute.height],
 		shaderSources	: { vertex: shaderSources['vertStageA'], fragment: shaderSources['fragStageA'] },
 		uniforms		: {						
 				dataA		: { type: 'sampler2D', object: data, location: 'dataA', shape: [compute.width, compute.height, 4] },
@@ -224,17 +223,17 @@ function setupShaders( data ) {
 	var optionsB = {
 		type			: 'COMPUTE',
 		draw			: true,
-		stageShape		: [compute.width, compute.height],
+		shape			: [compute.width, compute.height],
 		shaderSources	: { vertex: shaderSources['vertStageB'], fragment: shaderSources['fragStageB'] },
 		uniforms		: {
 				dataB		: { type: 'sampler2D', object: data, location: 'dataB', shape: [compute.width, compute.height, 1] },
 		},
-		output			: { write: true, object: data, location: 'dataBOut', onUpdated: callback }
+		output			: { write: false, object: data, location: 'dataBOut', onUpdated: callback }
 	}
 	
 	var optionsR = {
 		type			: 'RENDER',
-		stageShape		: [compute.width, compute.height],
+		shape			: [compute.width, compute.height],
 		shaderSources	: { vertex: shaderSources['vertRender'], fragment: shaderSources['fragRender'] },
 		uniforms		: {
 				dataC		: { type: 'sampler2D', object: data, location: 'dataC', shape: [compute.width, compute.height, 1], flip: false },
@@ -243,5 +242,5 @@ function setupShaders( data ) {
 		output			: { write: false, object: data, location: 'dataROut', onUpdated: callback }
 	}
 
-	compute.stagePreInit( { StageA: optionsA, StageB: optionsB, Render: optionsR } )
+	compute.preInit( { StageA: optionsA, StageB: optionsB, Render: optionsR } )
 }

@@ -16,8 +16,6 @@ An attempt at creating a compute framework on top of WebGL. Based on some [#stac
 
 ### Todo
 
-- Fix stuff
-- Robustify and do more checks on user provided data
 - Fix this install procedure, fix npm packaging
 - Fix the resources (shaders) loading phase (so ugly), maybe even adopt glslify (I don't like much to have glsl mixed with javascript - loosing syntax highlighting)
 - Provide some canned shaders to do some data post processing (input data 1 component > output data 4 components > output reduction to 1 component), pehaps also some pre-processing
@@ -51,7 +49,7 @@ The last computation stage will pass it's results back to the first stage accord
 
 		draw			: Draw Flag - to activate/deactivate this stage on demand
 		
-		stageShape		: Stage Shape - These are the dimensions of this stages' output
+		shape			: Stage Shape - These are the dimensions of this stages' output
 						  Length = stageShape[0] * stageShape[1] * 4 (4 = number of components/colors per element)
 
 		shaderSources	: Shader Sources - to use in this stage
@@ -81,7 +79,7 @@ The last computation stage will pass it's results back to the first stage accord
 	}
 	
 	Inititalise Stages - Provide options as an object, stages will be named here	
-	compute.stagePreInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2, nameOfStage3: stageOptions3, renderStage: stageRender } )
+	compute.preInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2, nameOfStage3: stageOptions3, renderStage: stageRender } )
 ```
 
 ****
