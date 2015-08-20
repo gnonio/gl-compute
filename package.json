@@ -1,6 +1,6 @@
 {
   "name": "gl-compute",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "WebGL Compute Framework",
   "main": "glCompute.js",
   "dependencies": {
@@ -28,5 +28,9 @@
     "Compute"
   ],
   "author": "gnonio (gamma.stardust@gmail.com)",
-  "license": "MIT"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gnonio/gl-compute/issues"
+  },
+  "homepage": "https://github.com/gnonio/gl-compute"
 }
