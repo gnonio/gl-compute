@@ -2,7 +2,7 @@
   "name": "gl-compute",
   "version": "1.0.0",
   "description": "WebGL Compute Framework",
-  "main": "js\\index.js",
+  "main": "glCompute.js",
   "dependencies": {
     "get-canvas-context": "^1.0.1",
     "gl-buffer": "^2.1.2",
@@ -13,6 +13,10 @@
     "gl-vao": "^1.2.1",
     "ndarray": "^1.0.18",
     "webglew": "^1.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/gnonio/gl-compute.git"
   },
   "devDependencies": {},
   "scripts": {

@@ -1,5 +1,15 @@
+'use strict'
+
+var getContext 		= require('get-canvas-context')
+var glExt 			= require("webglew")
+var createFBO 		= require("gl-fbo")
+var createShader 	= require('gl-shader')
+var createBuffer 	= require("gl-buffer")
+var createVAO 		= require("gl-vao")
+var createTexture 	= require("gl-texture2d")
+
 // GPU Computing on top of WebGL
-var glCompute = function( htmlTargetId ) {
+function glCompute( htmlTargetId ) {
 
 	this.containerId = htmlTargetId
 
@@ -10,8 +20,10 @@ var glCompute = function( htmlTargetId ) {
 	};
 	
 	this.stages = []
-	this.computeLoop = 0	
+	this.computeLoop = 0
 }
+
+module.exports = glCompute
 
 glCompute.prototype = {
 	init: function() {
@@ -34,9 +46,9 @@ glCompute.prototype = {
 		
 		// Create Canvas Set WebGL Context
 		//var gl = canvas.getContext("webgl2", this.canvasContextOpts );
-		var gl = stackGL.getContext('webgl2', { width: this.width, height: this.height } )
+		var gl = getContext('webgl2', { width: this.width, height: this.height } )
 		if ( gl === null ) { 
-			gl = stackGL.getContext('webgl', { width: this.width, height: this.height } )
+			gl = getContext('webgl', { width: this.width, height: this.height } )
 			console.log( "Fall back to WebGL 1.0. Failed creating WebGL 2 Context" )
 			if ( gl === null ) throw "Unable to set WebGL";
 		};
@@ -46,7 +58,7 @@ glCompute.prototype = {
 		container.appendChild(gl.canvas)
 		
 		// Check WebGL Extensions
-		var glExtensions = stackGL.glExt(gl)
+		var glExtensions = glExt(gl)
 		this.glExtensions = glExtensions
 		try {
 			if ( !glExtensions.OES_texture_float ) throw "Your webgl does not support OES_texture_float extension."
@@ -65,8 +77,7 @@ glCompute.prototype = {
 		//var gl = this.gl
 		
 		// Let's do some variable checking here then
-		// (provide a warning when stage output shape differs from the receiving stage shape? other checks?)
-		var lastStageName = ''; var totalStages = 0; var preInitOK = true
+		var lastStageName = ''; var lastStageShape = []; var totalStages = 0; var preInitOK = true
 		for( var stage in stages ) {
 			if ( stages.hasOwnProperty( stage ) ) {
 				var options = stages[ stage ]
@@ -189,7 +200,7 @@ glCompute.prototype = {
 	}
 }
 
-glComputeStage = function( glCompute, name, stages, options ) {
+function glComputeStage( glCompute, name, stages, options ) {
 	this.glCompute = glCompute
 	this.gl = glCompute.gl; var gl = this.gl
 	this.name = name
@@ -207,7 +218,7 @@ glComputeStage = function( glCompute, name, stages, options ) {
 	this.boundTextures = 0	// its referencing must be carefully managed
 	
 	// Set FBO for compute stages
-	if ( this.type == 'COMPUTE' ) this.fbo = stackGL.createFBO( gl, options.shape, {float: true, color: 1, depth: false} )
+	if ( this.type == 'COMPUTE' ) this.fbo = createFBO( gl, options.shape, {float: true, color: 1, depth: false} )
 	
 	// Set Draw flag
 	this.draw = ( this.type == 'COMPUTE') ? options.draw : true // Always true for render if existing
@@ -219,7 +230,7 @@ glComputeStage = function( glCompute, name, stages, options ) {
 	this.output = options.output
 	
 	// Set Vertex buffer | currently the same for both COMPUTE and RENDER stages
-	this.vertexBuffer = stackGL.createBuffer( gl, [ -1, 1, 1, 1, -1, -1,
+	this.vertexBuffer = createBuffer( gl, [ -1, 1, 1, 1, -1, -1,
 													1, 1, 1, -1, -1, -1	], gl.STATICDRAW )
 
 	// Set Stage Uniforms
@@ -234,7 +245,7 @@ glComputeStage = function( glCompute, name, stages, options ) {
 	// in both directions CPU > GPU < CPU
 		
 	// Create Shader
-	this.shader = stackGL.createShader( gl, this.vertexShader, this.fragmentShader )
+	this.shader = createShader( gl, this.vertexShader, this.fragmentShader )
 
 	if ( this.type == 'COMPUTE') glCompute.stages.push( this )
 	if ( this.type == 'RENDER') glCompute.renderStage = this
@@ -257,7 +268,7 @@ glComputeStage.prototype = {
 			}
 		}
 		
-		// CREATION - stage.shader.uniforms set by glComputeUniform() will contain the actual uniforms
+		// CREATION - glComputeUniform() will manage the actual uniforms saved in stage.uniforms | later to be fed to the shader
 		var uniformsConfig = this.uniformsConfig
 		for( var key in uniformsConfig ) {
 			if ( uniformsConfig.hasOwnProperty(key) ) {
@@ -268,6 +279,7 @@ glComputeStage.prototype = {
 		
 		// Vertex Shader stays the same for now
 		this.vertexShader = this.options.shaderSources.vertex
+		
 		// Fragment Shader consolidate uniforms code generated
 		this.fragmentSrc = '// STAGE - ' + this.name + ' | LOOP - ' + this.glCompute.computeLoop + ' \n// Generated User Defined Uniforms\n\n'
 		var uniforms = this.uniforms
@@ -297,7 +309,7 @@ glComputeStage.prototype = {
 	}
 }
 
-glComputeUniform = function( gl, stage, name, uniform ) {
+function glComputeUniform( gl, stage, name, uniform ) {
 	this.gl = gl
 	this.stage = stage
 	this.name = name
@@ -400,7 +412,7 @@ glComputeUniform.prototype = {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 		
-		this.format = shape[2] > 1 ? gl.RGBA : gl.LUMINANCE
+		this.format = shape[2] > 1 ? gl.RGBA : gl.LUMINANCE // Lets use a single component if possible
 		gl.texImage2D( gl.TEXTURE_2D, 0, this.format, shape[0], shape[1], 0, this.format, gl.FLOAT, this.data )
 	},
 	bindTexture: function( textureUnit ) {

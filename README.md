@@ -8,15 +8,20 @@ An attempt at creating a compute framework on top of WebGL. Based on some [#stac
 
 ### Install
 
-1. clone the project
-2. manualy install required modules: `npm install <module> (check dependencies in package.json)`
-3. run browserify (it will warn if you missed any module above): `browserify js\modules.js -o js\node_modules.js`
+1. clone gl-compute
+
+# as a Module for your projects
+
+2a. `var glCompute = require('gl-compute')`
+
+# as a Demo to try it out
+
+2b. `browserify demo/js/index.js -o demo/js/build.js`
 
 ****
 
 ### Todo
 
-- Fix this install procedure, fix npm packaging
 - Fix the resources (shaders) loading phase (so ugly), maybe even adopt glslify (I don't like much to have glsl mixed with javascript - loosing syntax highlighting)
 - Provide some canned shaders to do some data post processing (input data 1 component > output data 4 components > output reduction to 1 component), pehaps also some pre-processing
 - If maturing enough, link up to #stack.gl compute feature requests
@@ -81,6 +86,3 @@ The last computation stage will pass it's results back to the first stage accord
 	Inititalise Stages - Provide options as an object, stages will be named here	
 	compute.preInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2, nameOfStage3: stageOptions3, renderStage: stageRender } )
 ```
-
-****
-Disclaimer: Hobbyist approach. Not used to this package and modules managers from the point of the developer. I used npm to install modules. I am also keeping a custom file (modules.js) which once parsed by browserify spits a file exposing all dependencies the project requires into a single file (node_modules.js).
