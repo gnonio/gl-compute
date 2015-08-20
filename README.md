@@ -10,11 +10,11 @@ An attempt at creating a compute framework on top of WebGL. Based on some [#stac
 
 1. clone gl-compute
 
-# as a Module for your projects
+**as a Module for your projects**
 
 2a. `var glCompute = require('gl-compute')`
 
-# as a Demo to try it out
+**as a Demo to try it out**
 
 2b. `browserify demo/js/index.js -o demo/js/build.js`
 
