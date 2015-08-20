@@ -8,15 +8,15 @@ An attempt at creating a compute framework on top of WebGL. Based on some [#stac
 
 ### Install
 
-1. clone gl-compute
+1. `npm install gl-compute`
 
-**as a Module for your projects**
+*as a Module for your projects*
 
-2a. `var glCompute = require('gl-compute')`
+a. `var glCompute = require('gl-compute')`
 
-**as a Demo to try it out**
+*as a Demo to try it out*
 
-2b. `browserify demo/js/index.js -o demo/js/build.js`
+b. `browserify demo/js/index.js -o demo/js/build.js`
 
 ****
 
@@ -33,9 +33,9 @@ An attempt at creating a compute framework on top of WebGL. Based on some [#stac
 #### Stage Setup Options
 
 Stages must be fed to gl-compute in the order of computations, a render stage (if any) provided lastly.
-The computation cycle will pass the results of one stage to the next according to it's name (see bellow)
-The last computation stage will pass it's results back to the first stage accordingly
-(Logically, first stage data will be empty in the first pass, no data available from last stage)
+The computation cycle will pass the results of one stage to the next according to it's name (see bellow).
+The last computation stage will pass it's results back to the first stage accordingly.
+(Logically, first stage data will be empty in the first pass, no data available from last stage).
 
 ```
 	var data = {	dataA: inputA, dataAOut: emptyFloats,
