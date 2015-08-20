@@ -1,3 +1,5 @@
+var glCompute = require('../../glCompute.js')
+
 window.onload = function() { init() }
 
 function init() {
@@ -28,7 +30,7 @@ var t01, t02, t03, t04, t05, t06, t07, t08
 var t01f, t02f, t03f, t04f, t05f, t06f, t07f, t08f
 
 var shaderSources = {}
-var compute = new glCompute( "container" );
+var compute = new glCompute( "container" )
 
 function loadShaderSources( callbackQueue ) {
 	// Load Resources
@@ -67,7 +69,7 @@ function resourcesLoaded() {
 	t03f = performance.now() - t03
 	
 	t04 = performance.now()
-	setupShaders( data )
+	setupStages( data )
 	t04f = performance.now() - t04
 	
 	t05 = performance.now()
@@ -87,7 +89,7 @@ function resourcesLoaded() {
 	console.log("\nresourceLoader\t\t", t01f,
 				"\nsetupGL\t\t\t\t", t02f,
 				"\nsetupData\t\t\t", t03f,
-				"\nsetupShaders\t\t", t04f,
+				"\nsetupStages\t\t\t", t04f,
 				"\nprocessStages\t\t", t05f,
 				"\nrenderOutput\t\t", t06f,
 				"\ndisposeStagesFBOs\t", t07f,
@@ -156,7 +158,7 @@ function setupData() {
 
 var TargetObjectA, TargetObjectB, TargetObjectR
 var bufferA, bufferB, bufferR
-function setupShaders( data ) {
+function setupStages( data ) {
 /*
 	Stage Setup Options
 	
