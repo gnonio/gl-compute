@@ -2,28 +2,39 @@
 
 ## WebGL Compute Framework
 
-An attempt at creating a compute framework on top of WebGL. Based on some [#stack.gl](http://www.stack.gl) modules. There are projects alike, but either they require indepth knowledge of OpenGL to base projects of, they are too inflexible or they are too tied with a specific usage ([webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html)).
+A compute framework on top of WebGL. Based on some [#stack.gl](http://www.stack.gl) modules. This framework will allow to create custom kernels for each stage of a algorithm intended to run in parallel on the GPU. Stages are defined given the need in a phase of a algorithm of the results of a previous phase. Additionally the full algorithm may then be looped over, providing the last phase results to the first according to your needs. The objective is to have a featured, easy to understand and use framework, following parallel processing conventions is not necessarily the aim of this project (though they may appear here and there). You may also have interest in existing projects that served as inspiration: [webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html).
+
+### [DEMO](http://www.euclidiana.pt/gnonio/gl-compute) ###
 
 ****
 
 ### Install
 
-1. `npm install gl-compute`
+- `npm install gl-compute`
 
-*as a Module for your projects*
+- `var glCompute = require('gl-compute')`
+(*as a module for your projects*)
 
-a. `var glCompute = require('gl-compute')`
+- `browserify node_modules/gl-compute/demo/js/index.js -o node_modules/gl-compute/demo/js/bundle.js`
 
-*as a Demo to try it out*
+(*as a Demo to try out*)
 
-b. `browserify demo/js/index.js -o demo/js/build.js`
+****
+
+### Features
+
+- Plug-in to any project: just tell gl-compute which object contains your data and it's location (objects' attribute)
+- Multiple Data sources: provide a configurable amount of inputs to each phase of your algorithm
+- Automatic uniform glsl code generation: link inputs via gl-compute config and code the kernels not bothering with uniform declaration (reduces code management)
+- Configurable outputs: similarly to inputs plug-in interface
+- Update inplace: output data may be directly written to source input object
+- Output callback: configure your custom function once output data has been written
 
 ****
 
 ### Todo
 
-- Fix the resources (shaders) loading phase (so ugly), maybe even adopt glslify (I don't like much to have glsl mixed with javascript - loosing syntax highlighting)
-- Provide some canned shaders to do some data post processing (input data 1 component > output data 4 components > output reduction to 1 component), pehaps also some pre-processing
+- Provide some canned shaders for common pre and post processing tasks (ie. input data 1 component > output data 4 components > output reduction to 1 component)
 - If maturing enough, link up to #stack.gl compute feature requests
 
 ****
@@ -32,57 +43,65 @@ b. `browserify demo/js/index.js -o demo/js/build.js`
 
 #### Stage Setup Options
 
-Stages must be fed to gl-compute in the order of computations, a render stage (if any) provided lastly.
-The computation cycle will pass the results of one stage to the next according to it's name (see bellow).
-The last computation stage will pass it's results back to the first stage accordingly.
+Stages must be fed to gl-compute in the order of computations, a render stage (optional) provided lastly.
+The computation cycle will pass the results of one stage to the next according to given name (see bellow).
+The last computation stage will pass it's results back to the first stage as needed (looped algorithms).
 (Logically, first stage data will be empty in the first pass, no data available from last stage).
 
 ```
-	var data = {	dataA: inputA, dataAOut: emptyFloats,
-			dataB: inputB, dataBOut: emptyFloats,
-			dataC: inputC, dataCOut: emptyFloats,
-			dataD: inputD, dataDOut: emptyFloats,
-			dataROut: emptyUInts
-	}
+var data = {	dataA: inputA, dataAOut: emptyFloats,
+		dataB: inputB, dataBOut: emptyFloats,
+		dataC: inputC, dataCOut: emptyFloats,
+		dataD: inputD, dataDOut: emptyFloats,
+		dataROut: emptyUInts
+}
+
+Example callback function
+var callback = function() { console.log( this.output.object[this.output.location] ) }
+
+var options = {
+	type			: Stage Type - 'COMPUTE' (for the actual computations) or
+								   'RENDER' (optional for visualization purposes only)
+
+	draw			: Draw Flag - to activate/deactivate this stage on demand
 	
-	Example callback function
-	var callback = function() { console.log( this.output.object[this.output.location] ) }
+	shape			: Stage Shape - These are the dimensions of this stages' output
+
+	shaderSources	: Shader Sources - to use in this stage
+					  (create them and don't worry about uniform declaration
+					   check uniforms option bellow)
+
+	uniforms		: Stage Inputs - Data input to be fed to gl-compute
 	
-	var options = {
-		type			: Stage Type - 'COMPUTE' (for the actual computations) or
-									   'RENDER' (can be ommited, optional for visualization purposes only)
-
-		draw			: Draw Flag - to activate/deactivate this stage on demand
+	{ uniformName :
+		{ type: 'sampler2D', object: object, location: string, shape: array, flip: boolean }
 		
-		shape			: Stage Shape - These are the dimensions of this stages' output
-						  Length = stageShape[0] * stageShape[1] * 4 (4 = number of components/colors per element)
+		These will be made into texture uniforms and fragment shader source
+		will be generated and added correspondingly
+		  
+		Each named property here becomes the uniform name to be made available in the shader
+		Both the sampler2D uniform and a ivec2 containing the shape of the input is generated
+								  
+		GLSL naming conventions apply
+		  
+		The code generation includes a header and comments for your reference
+		(ie. Stage Name and generation/compilation loop)
+		Use your browser's shader editor to check the complete GLSL code being compiled
 
-		shaderSources	: Shader Sources - to use in this stage
-						  (these are barebones, create them and don't worry about uniform declaration - check uniforms option bellow)
-
-		uniforms		: Stage Inputs - Data input to be fed to gl-compute
-		
-			{ uniformName : { type: 'sampler2D', object: object, location: string, shape: array, flip: boolean }
-			
-						  These will be made into texture uniforms and fragment shader source will be generated and added correspondingly
-						  
-						  Each named property here becomes the uniform name to be made available in the shader
-						  Both the sampler2D uniform and a ivec2 containing the shape (dimensions) of the input is generated
-						  						  
-						  GLSL naming conventions apply
-						  
-						  The code generation includes a header and comments for your reference (ie. Stage Name and generation/compilation loop)
-						  Use your browser's shader editor to check the complete GLSL code being compiled
-
-		output			: Stage Output - definitions of the target object where data will be saved
-		
-			{ write: boolean, object: object, location: string, onUpdated: function }
-			
-						  Write Output Flag - This is where the most performance impact occurs, use sparingly when intermediate results are required
-		
-						  Object Reference / Porperty name where the data buffer lies / callback to a function when new data has been writen
-	}
+	output			: Stage Output - definitions of the target object where data will be saved
 	
-	Inititalise Stages - Provide options as an object, stages will be named here	
-	compute.preInit( { nameOfStage1: stageOptions1, nameOfStage2: stageOptions2, nameOfStage3: stageOptions3, renderStage: stageRender } )
+		{ write: boolean, object: object, location: string, onUpdated: function }
+		
+			Write Output Flag - This is where the most performance impact occurs,
+			use sparingly when intermediate results are required
+
+			Object Reference
+			Attribute name where the data buffer lies
+			callback to a function when new data has been writen
+}
+
+Inititalise Stages - Provide options as an object, stages will be named here	
+compute.preInit( { nameOfStage1: stageOptions1,
+				   nameOfStage2: stageOptions2,
+				   renderStage: stageRender } )
 ```

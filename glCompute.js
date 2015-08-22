@@ -67,8 +67,8 @@ glCompute.prototype = {
 			if ( !glExtensions.OES_texture_float_linear ) throw "Your webgl does not support OES_texture_float_linear extension."
 		} catch ( error ) { console.log( error, glExtensions )}
 		
-		gl.canvas.style.width = this.width * this.factor
-		gl.canvas.style.height = this.height * this.factor
+		gl.canvas.style.width = this.width * this.factor + 'px'
+		gl.canvas.style.height = this.height * this.factor + 'px'
 		gl.canvas.style["image-rendering"] = "pixelated"
 		gl.canvas.style["image-rendering"] = "-moz-crisp-edges"
 	},
@@ -323,6 +323,8 @@ glComputeStage.prototype = {
 			}
 		}	
 		this.fragmentShader = this.fragmentSrc + '// END Generated GLSL\n\n\n' + this.options.shaderSources.fragment
+		
+		//console.log(this.fragmentShader)
 	},
 	bindUniforms: function() {
 		var uniforms = this.uniforms
