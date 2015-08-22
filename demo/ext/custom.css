@@ -1,0 +1,9 @@
+.mono { font-family:monospace; }
+.smalltext { font-size:12px; }
+.xsmalltext { font-size:10px; }
+
+.top-margin [class=row] { margin-top:5px; }
+
+textarea {
+   resize: none;
+}

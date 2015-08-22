@@ -191,6 +191,16 @@ glCompute.prototype = {
 		
 	},
 	
+	getStageByName: function ( name ) {
+		var stage = null
+		for ( var i = 0; i < this.stages.length; i++ ) {
+			var sstage = this.stages[i]
+			if ( sstage.name == name ) stage = sstage
+		}
+		if ( this.renderStage.name == name ) stage = this.renderStage
+		return stage
+	},
+	
 	disposeStagesFBOs: function () {
 		// Cleanup Framebuffers
 		for ( var i = 0; i < this.stages.length; i++ ) {
@@ -251,6 +261,29 @@ function glComputeStage( glCompute, name, stages, options ) {
 	if ( this.type == 'RENDER') glCompute.renderStage = this
 }
 glComputeStage.prototype = {
+	updateShader: function( shader ) {
+		var gl = this.gl
+		// Set Stage Uniforms
+		this.options.shaderSources.vertex = shader.vertex
+		this.options.shaderSources.fragment = shader.fragment
+		
+		// Vertex Shader stays the same for now
+		this.vertexShader = this.options.shaderSources.vertex
+		
+		// Fragment Shader consolidate uniforms code generated
+		this.fragmentSrc = '// STAGE - ' + this.name + ' | LOOP - ' + this.glCompute.computeLoop + ' \n// Generated User Defined Uniforms\n\n'
+		var uniforms = this.uniforms
+		for( var key in uniforms ) {
+			if ( uniforms.hasOwnProperty(key) ) {
+				var uniform = uniforms[key]
+				this.fragmentSrc = this.fragmentSrc + uniform.fragmentSrc
+			}
+		}	
+		this.fragmentShader = this.fragmentSrc + '// END Generated GLSL\n\n\n' + this.options.shaderSources.fragment
+			
+		// Create Shader
+		this.shader = createShader( gl, this.vertexShader, this.fragmentShader )
+	},
 	setupUniforms: function() {
 		var gl = this.gl
 		
