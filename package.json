@@ -1,6 +1,6 @@
 {
   "name": "gl-compute",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "WebGL Compute Framework",
   "main": "glCompute.js",
   "dependencies": {
@@ -8,10 +8,8 @@
     "gl-buffer": "^2.1.2",
     "gl-fbo": "^2.0.5",
     "gl-shader": "^4.0.5",
-    "gl-shader-core": "^2.2.0",
     "gl-texture2d": "^2.0.9",
     "gl-vao": "^1.2.1",
-    "ndarray": "^1.0.18",
     "webglew": "^1.0.5"
   },
   "repository": {

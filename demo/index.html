@@ -1,27 +1,162 @@
-<html>
+<!-- <!DOCTYPE html> -->
+<html lang="en">
+
 <head>
+<title>gl-compute demo</title>
 
-<link rel="stylesheet" href="./js/main.css"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script type="text/javascript" src="./js/build.js"></script>
-<script type="text/javascript" src="./js/utils.js"></script>
+<!-- jQuery -->
+<script src="ext/jquery-2.1.3.min.js"></script>
+
+<!-- Bootstrap -->
+<link href="ext/custom.css" rel="stylesheet">
+<link href="ext/bootstrap.min.css" rel="stylesheet">
+<script src="ext/bootstrap.min.js"></script>
+
+<!-- Demo -->
+<script type="text/javascript" src="./js/bundle.js"></script>
 
 <!-- GA -->
 <script>
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-ga('create', 'UA-66399808-1', 'auto');
-ga('send', 'pageview');
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-66399808-1', 'auto');
+	ga('send', 'pageview');
 </script>
 
 </head>
 
 <body>
 
-	<input id="buttonClick" type="button" value="processStages()">
-	<div id="container"></div>
+
+	<div class="container top-margin" class="smalltext">
+	
+	<div class="row">
+		<h3>gl-compute demo</h3>
+	</div>
+	
+	<div class="row">
+		<div id="container" class="col-sm-12"></div>
+	</div>
+	
+	<div class="row">
+		<input id="processStages" class="btn btn-primary btn-sm" type="button" value="processStages()">
+	</div>
+	
+	
+	<!-- Stage A -->
+	<div class="row">
+		<label for="vertStageA" class="col-sm-4" >Vertex Shader:</label>
+		<label for="fragStageA" class="col-sm-8" >Fragment Shader:</label>
+	</div>
+	
+	<div class="row">
+
+		<textarea id="vertStageA" class="col-sm-4 mono xsmalltext" rows="12">
+attribute vec2 position;
+varying vec2 uv;
+void main() {
+	gl_Position = vec4( position, 0.0, 1.0 );
+	uv = 0.5 * ( position + 1.0 );
+}
+		</textarea>
+		<textarea id="fragStageA" class="col-sm-8 mono xsmalltext" rows="12">
+precision highp float;
+
+// Base
+varying vec2 uv;
+
+void main() {
+	vec4 result1 = texture2D( dataA, vec2(uv.x, uv.y) );
+	vec4 result2 = texture2D( StageB, vec2(uv.x, uv.y) );
+	vec4 last;
+	if ( mod( float( computeLoop ), 3.0 ) == 0.0 ) {
+		last = result1;
+	} else {
+		last = result2;
+	}
+	gl_FragColor = last;
+}
+		</textarea>
+	</div>
+	
+	<div class="row">
+		<input id="updateShaderA" class="btn btn-primary btn-sm pull-right" type="button" value="Update StageA Shader">
+	</div>
+	
+	
+	<!-- Stage B -->
+	<div class="row">
+		<label for="vertStageB" class="col-sm-4" >Vertex Shader:</label>
+		<label for="fragStageB" class="col-sm-8" >Fragment Shader:</label>
+	</div>
+	
+	<div class="row">
+
+		<textarea id="vertStageB" class="col-sm-4 mono xsmalltext" rows="12">
+attribute vec2 position;
+varying vec2 uv;
+void main() {
+	gl_Position = vec4( position, 0.0, 1.0 );
+	uv = 0.5 * ( position + 1.0 );
+}
+		</textarea>
+		<textarea id="fragStageB" class="col-sm-8 mono xsmalltext" rows="12">
+precision highp float;
+
+// Base
+varying vec2 uv;
+
+void main() {	
+	vec4 test = texture2D( StageA, vec2(uv.x, uv.y) ) * 0.5;
+	test.a = 1.0;
+	gl_FragColor = test;
+}
+		</textarea>
+	</div>
+	
+	<div class="row">
+		<input id="updateShaderB" class="btn btn-primary btn-sm pull-right" type="button" value="Update StageB Shader">
+	</div>
+	
+	<!-- Stage Render -->
+	<div class="row">
+		<label for="vertRender" class="col-sm-4" >Vertex Shader:</label>
+		<label for="fragRender" class="col-sm-8" >Fragment Shader:</label>
+	</div>
+	
+	<div class="row">
+
+		<textarea id="vertRender" class="col-sm-4 mono xsmalltext" rows="12">
+attribute vec2 position;
+varying vec2 uv;
+void main() {
+	gl_Position = vec4( position, 0.0, 1.0 );
+	uv = 0.5 * ( position + 1.0 );
+}
+		</textarea>
+		<textarea id="fragRender" class="col-sm-8 mono xsmalltext" rows="12">
+precision highp float;
+
+// Base
+varying vec2 uv;
+
+void main() {
+	gl_FragColor = texture2D( StageA, vec2(uv.x, 1.0 - uv.y) ); // Flip Vertically
+}
+		</textarea>
+	</div>
+	
+	<div class="row">
+		<input id="updateShaderRender" class="btn btn-primary btn-sm pull-right" type="button" value="Update Render Shader">
+	</div>
+	
+	</div> <!-- container END -->
+
 
 </body>
 
