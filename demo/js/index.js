@@ -3,7 +3,11 @@ var glCompute = require('../../glCompute.js')
 window.onload = function() { init() }
 
 function init() {
-	document.querySelector('#processStages').addEventListener('click', function() { processStages() }, false);
+	document.querySelector('#processStages').addEventListener('click', function() {processStages() }, false);
+	document.querySelector('#animate').addEventListener('click', function() {
+		animated = !animated
+		this.value = 'animated = '+ animated
+	}, false);
 	
 	document.querySelector('#updateShaderA').addEventListener('click', function() { updateShader( 'StageA' ) }, false)
 	document.querySelector('#updateShaderB').addEventListener('click', function() { updateShader( 'StageB' ) }, false)
@@ -15,11 +19,10 @@ function init() {
 var t01, t02, t03, t04, t05, t06, t07, t08
 var t01f, t02f, t03f, t04f, t05f, t06f, t07f, t08f
 
-var shaderSources = {}
-var compute = new glCompute( "container" )
+compute = new glCompute( "container" )
 
 function processStages() {
-	var t05 = performance.now()
+	t05 = performance.now()
 	compute.processStages()
 	console.log( 'LOOP ' + compute.computeLoop )
 	t05f = performance.now() - t05
@@ -98,8 +101,6 @@ function setupData() {
 		c += (1 / (inputWidth * inputHeight))
 	}
 	
-	//var matrixA = nd.array(inputA, [inputWidth, inputHeight, inputElementSize])
-	
 	var inputB = new Float32Array( inputWidth * inputHeight )
 	var c = 0//.001;
 	for ( var i = 0; i < inputHeight; i++ ) {
@@ -108,8 +109,6 @@ function setupData() {
 			c += 1//(1 / (inputWidth * inputHeight))
 		}
 	}
-	
-	//var matrixB = nd.array(inputB, [inputWidth, inputHeight])
 	
 	var inputC = new Float32Array( inputWidth * inputHeight * 1 )
 	var c = 0
@@ -134,7 +133,21 @@ function setupData() {
 				dataD: inputD, dataDOut: emptyFloats,
 				dataROut: emptyUInts
 	}
+	
+	setInterval( animateInput, 2000);
 	return inputs
+}
+
+var animated = true
+function animateInput() {
+	if ( animated ) {
+		var input = inputs.dataA
+		for ( var i = 1; i <= input.length; i++ ) {
+			input[ i - 1 ] = ( i == input.length ) ? input[ 0 ] : input[ i - 1 ] = input[ i ]
+		}
+		compute.getStageByName( 'StageA' ).uniforms.dataA.dirty = true
+		processStages()
+	}
 }
 
 function setupStages( data ) {

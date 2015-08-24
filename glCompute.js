@@ -349,6 +349,7 @@ function glComputeUniform( gl, stage, name, uniform ) {
 	this.stage = stage
 	this.name = name
 	this.type = uniform.type
+	this.dirty = true
 
 	// Setting up glsl source to add to shaders
 	this.fragmentSrc = ''	
@@ -414,7 +415,6 @@ glComputeUniform.prototype = {
 			stageToBind = stage.glCompute.stages[ stageIndex ]
 		}
 		
-		// ISSUES with setting Uniform locations >> gl-shader (stack.gl) || Reverting to raw GL
 		var location = gl.getUniformLocation( stage.shader.program, stageToBind.name );
 		gl.uniform1i(location, textureUnit);			
 		stage.shader.uniforms[ stageToBind.name ] = stageToBind.fbo.color[0].bind( textureUnit )
@@ -427,7 +427,6 @@ glComputeUniform.prototype = {
 	createTexture: function( object, location, shape, flip ) {
 		var gl = this.gl
 		this.data = object[location]
-		this.location = location
 		this.texture = gl.createTexture();
 		this.shape = shape
 		
@@ -447,18 +446,26 @@ glComputeUniform.prototype = {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 		
-		this.format = shape[2] > 1 ? gl.RGBA : gl.LUMINANCE // Lets use a single component if possible
-		gl.texImage2D( gl.TEXTURE_2D, 0, this.format, shape[0], shape[1], 0, this.format, gl.FLOAT, this.data )
+		this.format = this.shape[2] > 1 ? gl.RGBA : gl.LUMINANCE // Lets use a single component if possible
+		gl.texImage2D( gl.TEXTURE_2D, 0, this.format, this.shape[0], this.shape[1], 0, this.format, gl.FLOAT, this.data )
+		this.dirty = false
 	},
 	bindTexture: function( textureUnit ) {
 		var gl = this.gl
 		var key = this.name
 		var stage = this.stage
 		var location = gl.getUniformLocation( stage.shader.program, key )
+		//console.log(this.name+ ' dirty:', this.dirty)
+		
 		gl.uniform1i( location, textureUnit )
 		
 		gl.activeTexture(gl.TEXTURE0 + textureUnit)
 		gl.bindTexture(gl.TEXTURE_2D, this.texture)
+
+		if ( this.dirty ) { // should consider texSubImage2D updates too
+			gl.texImage2D( gl.TEXTURE_2D, 0, this.format, this.shape[0], this.shape[1], 0, this.format, gl.FLOAT, this.data )
+			this.dirty = false
+		}
 							
 		var location2 = gl.getUniformLocation( stage.shader.program, key+'Shape' )
 		gl.uniform2iv( location2, this.shape )
