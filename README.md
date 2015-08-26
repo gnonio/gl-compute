@@ -35,6 +35,10 @@ A compute framework on top of WebGL. Based on some [#stack.gl](http://www.stack.
 
 ### Todo
 
+- Improve default Render stage, show all inputs + outputs, dynamically accommodate multiple shapes
+- Improve internal interface, setting inputs / outputs, integrate demo stageSetup() function, variable name consistency
+- Improve usage workflow, still too cumbersome (between testing a shader, verifying available inputs and their naming, and glsl debugging)
+- Provide a more thorough guide on how to use
 - Provide some canned shaders for common pre and post processing tasks (ie. input data 1 component > output data 4 components > output reduction to 1 component)
 - If maturing enough, link up to #stack.gl compute feature requests
 
