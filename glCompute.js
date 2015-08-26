@@ -363,7 +363,7 @@ function glComputeUniform( gl, stage, name, uniform ) {
 		case 'sampler2D':
 			this.createTexture( uniform.object, uniform.location, uniform.shape, uniform.flip )
 			this.fragmentSrc = 'uniform sampler2D ' + this.name + '; // Input Data\n' +
-							   'uniform ivec2 ' + this.name + 'Shape; // Dimensions\n\n'
+							   'uniform ivec3 ' + this.name + 'Shape; // Dimensions\n\n'
 			break;
 		case 'ivec2':
 		case 'ivec3':
@@ -468,7 +468,7 @@ glComputeUniform.prototype = {
 		}
 							
 		var location2 = gl.getUniformLocation( stage.shader.program, key+'Shape' )
-		gl.uniform2iv( location2, this.shape )
+		gl.uniform3iv( location2, this.shape )
 		stage.shader.uniforms[key+'Shape'] = this.shape
 	},
 	createData: function( data ) {
