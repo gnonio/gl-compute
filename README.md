@@ -2,9 +2,9 @@
 
 ## WebGL Compute Framework
 
-A compute framework on top of WebGL. Based on some [#stack.gl](http://www.stack.gl) modules. This framework will allow to create custom kernels for each stage of a algorithm intended to run in parallel on the GPU. Stages are defined given the need in a phase of a algorithm of the results of a previous phase. Additionally the full algorithm may then be looped over, providing the last phase results to the first according to your needs. The objective is to have a featured, easy to understand and use framework, following parallel processing conventions is not necessarily the aim of this project (though they may appear here and there). You may also have interest in existing projects that served as inspiration: [webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html).
+A compute framework on top of WebGL. Based on some [#stack.gl](http://www.stack.gl) modules. This framework will allow to create custom kernels for each stage of a algorithm intended to run in parallel on the GPU. Stages are defined given the need in a phase of a algorithm of the results of a previous phase. Additionally the full algorithm may then be looped over, providing the last phase results to the first according to your needs. The objective is to have a featured, easy to understand and use framework, following parallel processing conventions is not necessarily the aim of this project (though they may appear here and there). You may also have interest in existing projects that served as inspiration: [webclgl](https://github.com/stormcolor/webclgl) / [webgl-matrix-demo](https://github.com/watmough/webgl-matrix-demo) / [three.js - gpgpu flocking](http://jabtunes.com/labs/3d/gpuflocking/webgl_gpgpu_flocking6.html). Check also [webLas](https://github.com/waylonflinn/weblas) which is shaping up pretty good.
 
-### [DEMO](http://www.euclidiana.pt/gnonio/gl-compute)
+### [DEMO](http://www.euclidiana.pt/gnonio/gl-compute) - Offline
 
 ****
 
